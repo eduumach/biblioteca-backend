@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
-	"github.com/eduumach/biblioteca-backend/src/main/com/github/eduumach/biblioteca-backend/model"
+	"github.com/eduumach/biblioteca-backend/src/main/com/github/eduumach/biblioteca-backend/app/controller"
+	"github.com/eduumach/biblioteca-backend/src/main/com/github/eduumach/biblioteca-backend/app/model"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v4"
 	"log"
@@ -54,7 +54,7 @@ func (a *App) createBook(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if err := b.CreateProduct(a.DB); err != nil {
+	if err := b.CreateBook(a.DB); err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 	}
 
@@ -70,17 +70,9 @@ func (a *App) getBook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	b := model.Book{ID: id}
-	if err := b.GetBook(a.DB); err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			respondWithError(w, http.StatusNotFound, "Book not found")
-		default:
-			respondWithError(w, http.StatusInternalServerError, err.Error())
-		}
-		return
-	}
+	c := b.GetBook(a.DB)
 
-	respondWithJSON(w, http.StatusOK, b)
+	respondWithJSON(w, http.StatusOK, c)
 }
 
 func (a *App) getBooks(w http.ResponseWriter, r *http.Request) {
@@ -95,6 +87,8 @@ func (a *App) getBooks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) initializeRoutes() {
+	var p controller.Photos
+	a.Router.HandleFunc("/photos", p.CreatePhoto).Methods("POST")
 	a.Router.HandleFunc("/books", a.createBook).Methods("POST")
 	a.Router.HandleFunc("/books/{id:[0-9]+}", a.getBook).Methods("GET")
 	a.Router.HandleFunc("/books", a.getBooks).Methods("GET")
