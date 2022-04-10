@@ -1,25 +1,24 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v4"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type App struct {
 	Router *mux.Router
-	DB     *sql.DB
+	DB     *pgx.Conn
 }
 
-func (a *App) Initialize(user, password, dbname string) {
-	connectionString := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", user, password, dbname)
-
+func (a *App) Initialize(database string) {
 	var err error
-	a.DB, err = sql.Open("postgres", connectionString)
+	a.DB, err = pgx.Connect(context.Background(), database)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -61,6 +60,41 @@ func (a *App) createBook(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusCreated, b)
 }
 
+func (a *App) getBook(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid book ID")
+		return
+	}
+
+	b := Book{ID: id}
+	if err := b.getBook(a.DB); err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			respondWithError(w, http.StatusNotFound, "Book not found")
+		default:
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, b)
+}
+
+func (a *App) getBooks(w http.ResponseWriter, r *http.Request) {
+	b := Book{}
+	books, err := b.getBooks(a.DB)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, books)
+}
+
 func (a *App) initializeRoutes() {
 	a.Router.HandleFunc("/books", a.createBook).Methods("POST")
+	a.Router.HandleFunc("/books/{id:[0-9]+}", a.getBook).Methods("GET")
+	a.Router.HandleFunc("/books", a.getBooks).Methods("GET")
 }
