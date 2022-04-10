@@ -17,7 +17,7 @@ func init() {
 
 func main() {
 	a := App{}
-	a.Initialize(os.Getenv("APP_DATABASE"))
+	a.Initialize(os.Getenv("DATABASE_URL"))
 
 	a.Run(":8000")
 }
