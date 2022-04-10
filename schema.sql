@@ -1,17 +1,16 @@
 CREATE TABLE books (
-                       ID SERIAL PRIMARY KEY,
-                       Title VARCHAR NOT NULL,
-                       Publisher VARCHAR NOT NULL,
-                       Photo VARCHAR NOT NULL,
-                       Authors VARCHAR[] NOT NULL
+                       id SERIAL NOT NULL PRIMARY KEY,
+                       title VARCHAR(255) NOT NULL,
+                       publisher VARCHAR(255) NOT NULL,
+                       authors VARCHAR[] NOT NULL
 );
 
-INSERT INTO books(title, publisher, photo, authors)
-VALUES (
-           'o amor',
-           'editora teste',
-           'foto.teste/o_amor',
-           '{"joão","maria"}'
-       );
-
-SELECT * FROM books;
+CREATE TABLE photos (
+                        id SERIAL NOT NULL PRIMARY KEY,
+                        photo TEXT NOT NULL,
+                        book_id INT NOT NULL,
+                        create_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                        CONSTRAINT books
+                            FOREIGN KEY(book_id)
+                                REFERENCES photos(id)
+);
