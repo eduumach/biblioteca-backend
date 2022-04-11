@@ -2,7 +2,7 @@ package controller
 
 import (
 	"encoding/json"
-	"github.com/eduumach/biblioteca-backend/src/main/com/github/eduumach/biblioteca-backend/app/model"
+	"github.com/eduumach/biblioteca-backend/app/model"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v4"
 	"net/http"
