@@ -1,95 +1,24 @@
 package app
 
 import (
-	"context"
-	"encoding/json"
 	"github.com/eduumach/biblioteca-backend/app/controller"
 	"github.com/eduumach/biblioteca-backend/app/model"
-	"github.com/gorilla/mux"
-	"github.com/jackc/pgx/v4"
 	"log"
 	"net/http"
-	"strconv"
 )
 
 type App struct {
-	Router *mux.Router
-	DB     *pgx.Conn
 }
 
 func (a *App) Initialize(database string) {
-	var err error
-	a.DB, err = pgx.Connect(context.Background(), database)
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	a.Router = mux.NewRouter()
+	db := model.DB{}
+	db.Initialize(database)
 
-	a.initializeRoutes()
+	routers := controller.Routers{}
+	routers.Initialize()
 }
 
 func (a *App) Run(addr string) {
-	log.Fatal(http.ListenAndServe(addr, a.Router))
-}
-
-func respondWithError(w http.ResponseWriter, code int, message string) {
-	respondWithJSON(w, code, map[string]string{"erro:": message})
-}
-
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
-	response, _ := json.Marshal(payload)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	w.Write(response)
-}
-
-func (a *App) createBook(w http.ResponseWriter, r *http.Request) {
-	var b model.Book
-	decode := json.NewDecoder(r.Body)
-	if err := decode.Decode(&b); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
-		return
-	}
-	defer r.Body.Close()
-
-	if err := b.CreateBook(a.DB); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
-	}
-
-	respondWithJSON(w, http.StatusCreated, b)
-}
-
-func (a *App) getBook(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid book ID")
-		return
-	}
-
-	b := model.Book{ID: id}
-	c := b.GetBook(a.DB)
-
-	respondWithJSON(w, http.StatusOK, c)
-}
-
-func (a *App) getBooks(w http.ResponseWriter, r *http.Request) {
-	b := model.Book{}
-	books, err := b.GetBooks(a.DB)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	respondWithJSON(w, http.StatusOK, books)
-}
-
-func (a *App) initializeRoutes() {
-	var p controller.Photos
-	a.Router.HandleFunc("/photos", p.CreatePhoto).Methods("POST")
-	a.Router.HandleFunc("/books", a.createBook).Methods("POST")
-	a.Router.HandleFunc("/books/{id:[0-9]+}", a.getBook).Methods("GET")
-	a.Router.HandleFunc("/books", a.getBooks).Methods("GET")
+	log.Fatal(http.ListenAndServe(addr, controller.Routers{}.Router))
 }
